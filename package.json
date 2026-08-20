@@ -2,7 +2,6 @@
   "name": "comparador-inversiones-ar",
   "version": "2.0.0",
   "private": true,
-  "license": "MIT",
   "type": "module",
   "scripts": {
     "dev": "vite",

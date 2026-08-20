@@ -31,6 +31,27 @@ La página consulta datos públicos de:
 Las consultas y los cálculos están incluidos en el código fuente, principalmente en
 `src/api-argentina.js`.
 
+## Saber qué versión está publicada
+
+El pie de la página muestra una línea como `versión 1f09f29 · 2026-08-20`. Es el
+commit del que salió el build que estás viendo.
+
+`vite.config.js` la arma en tiempo de compilación:
+
+| Origen | Cuándo |
+|---|---|
+| `COMMIT_REF` | build de Netlify — lo define la plataforma |
+| `git rev-parse --short HEAD` | build local dentro del repo |
+| `"local"` | sin git (por ejemplo, una copia descomprimida de un zip) |
+
+El último caso importa: sin ese respaldo, compilar fuera de un repo git rompería
+el build por una constante sin definir.
+
+Sirve para responder de un vistazo "¿lo que está en el aire es lo último?", que
+antes obligaba a bajar los archivos del sitio y compararlos por hash.
+
+---
+
 ## Integración continua
 
 `.github/workflows/ci.yml` corre dos cosas distintas:
@@ -46,12 +67,6 @@ servidor ajeno no tiene por qué poner en rojo un commit sano.
 Si una fuente se cae o cambia de formato, GitHub avisa por mail antes de que lo
 note un visitante — que es exactamente lo que **no** pasó cuando CAFCI cortó el
 acceso y la página se quedó mostrando "—" durante semanas.
-
----
-
-## Licencia
-
-MIT — ver [LICENSE](LICENSE).
 
 ---
 
