@@ -1,0 +1,78 @@
+# ═══════════════════════════════════════════════════════════════
+#  CI — dos trabajos con propósitos distintos
+#
+#  build   → en cada push: que el proyecto compile y las cuentas den bien.
+#            Solo usa código propio, así que si falla, el problema es nuestro.
+#
+#  fuentes → una vez por día: que las APIs de terceros sigan vivas y con el
+#            formato esperado.
+#
+#  Están separados a propósito. La verificación de APIs sale a internet y
+#  puede fallar por un hipo momentáneo de un servidor ajeno; si estuviera en
+#  el mismo trabajo, un push perfectamente sano aparecería en rojo por algo
+#  que no depende de nosotros.
+#
+#  El motivo de que exista `fuentes`: esta página no tiene datos propios. Ya
+#  pasó que CAFCI cortara el acceso y que un endpoint de FCI empezara a
+#  devolver 404, y la página siguió publicada mostrando "—" sin avisar a
+#  nadie. Esto avisa por mail antes que un visitante lo note.
+# ═══════════════════════════════════════════════════════════════
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # 13:00 UTC = 10:00 en Argentina. Las tasas se publican por la mañana.
+    - cron: "0 13 * * *"
+  workflow_dispatch: # permite correrlo a mano desde la pestaña Actions
+
+jobs:
+  build:
+    name: Tests y compilación
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20" # el mismo que usa Netlify, ver netlify.toml
+          cache: npm
+
+      - run: npm ci
+
+      - name: Tests de la matemática financiera
+        run: npm test
+
+      - name: Compilar
+        run: npm run build
+
+      - name: Verificar que dist quedó completa
+        # Sin index.html Netlify muestra "Página no encontrada"; sin
+        # _redirects se publica pero media página queda en "—".
+        run: |
+          test -f dist/index.html   || { echo "Falta dist/index.html"; exit 1; }
+          test -f dist/_redirects   || { echo "Falta dist/_redirects"; exit 1; }
+          test -f dist/_headers     || { echo "Falta dist/_headers"; exit 1; }
+          echo "dist/ completa"
+
+  fuentes:
+    name: Salud de las APIs
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - run: npm ci
+
+      - name: Consultar las 7 fuentes
+        run: npm run verificar

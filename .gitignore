@@ -8,5 +8,3 @@ dist/
 npm-debug.log*
 .vite/
 .netlify/
-build_output.txt
-outdated_before.json
