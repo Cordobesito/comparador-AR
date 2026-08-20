@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+
+# El proxy de APIs no es contenido: que no se indexe ni se gaste crawl budget.
+Disallow: /api/
+
+Sitemap: https://comparadorar.netlify.app/sitemap.xml

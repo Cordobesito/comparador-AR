@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Guzmán Asesor Bursátil">
+  <!--
+    Isotipo de Guzmán Asesor Bursátil: la línea de cotización dentro del
+    círculo, redibujada en vectores desde el logo de la marca.
+
+    Los trazos son algo más gruesos que en el logo original a propósito.
+    El anillo del original es un hairline: a 16px —que es donde vive un
+    favicon— desaparece por completo. Con este peso la marca sigue siendo
+    reconocible hasta 16px (círculo + línea ascendente).
+  -->
+  <rect width="64" height="64" rx="12" fill="#f1ede2" />
+  <circle cx="32" cy="32" r="23.5" fill="none" stroke="#2e2d29" stroke-width="3.2" />
+  <polyline
+    points="19,35 25,40 29,36 33,39 44,22"
+    fill="none"
+    stroke="#2e2d29"
+    stroke-width="3.6"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <circle cx="44" cy="22" r="2.8" fill="#a1885c" />
+</svg>

@@ -1,0 +1,56 @@
+# ═══════════════════════════════════════════════════════════════
+#  Netlify — build + proxy de APIs
+#
+#  ¿Por qué el proxy?
+#  api.argentinadatos.com NO envía cabeceras CORS
+#  (Access-Control-Allow-Origin), así que el navegador bloquea
+#  cualquier fetch directo desde comparadorar.netlify.app.
+#  Ese era el motivo de que plazo fijo, inflación, riesgo país y
+#  FCI aparecieran siempre en "—" en producción.
+#
+#  Los rewrites de Netlify (status = 200) se resuelven en el edge,
+#  no en el navegador, por lo que CORS deja de aplicar.
+#  El espejo para `npm run dev` / `npm run preview` está en
+#  vite.config.js — las rutas son idénticas en dev y en prod.
+# ═══════════════════════════════════════════════════════════════
+
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+# ── Proxy de API ──────────────────────────────────────────────
+# Solo argentinadatos lo necesita: dolarapi y CoinGecko sí mandan CORS
+# y se consultan directo desde el navegador.
+[[redirects]]
+  from = "/api/ad/*"
+  to = "https://api.argentinadatos.com/:splat"
+  status = 200
+  force = true
+
+# ── SPA fallback ──────────────────────────────────────────────
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# ── Cabeceras ─────────────────────────────────────────────────
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "SAMEORIGIN"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "geolocation=(), microphone=(), camera=(), payment=()"
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"

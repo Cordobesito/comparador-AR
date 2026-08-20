@@ -1,0 +1,16 @@
+# Netlify lee este archivo desde la raíz de lo que se publica (dist/).
+#
+# Existe además de netlify.toml porque los dos se despliegan distinto:
+#   · netlify.toml  → sirve cuando Netlify hace el build desde un repo git,
+#                     porque está en la raíz del repo.
+#   · _redirects    → vive en public/, así que Vite lo copia dentro de dist/
+#                     y viaja con la carpeta cuando se sube a mano.
+# Sin este archivo, un deploy por arrastrar dist/ se queda sin el proxy y
+# vuelven a fallar plazo fijo, inflación, riesgo país y billeteras.
+
+# Proxy a ArgentinaDatos (no manda cabeceras CORS: el pedido lo tiene que
+# hacer el servidor, no el navegador). El ! fuerza la regla.
+/api/ad/*   https://api.argentinadatos.com/:splat   200!
+
+# SPA: cualquier ruta cae en la app.
+/*          /index.html                             200
