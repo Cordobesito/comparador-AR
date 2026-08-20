@@ -191,6 +191,14 @@ function Pie() {
         <strong>no es asesoramiento financiero</strong>: verificá siempre en la entidad antes de
         invertir.
       </p>
+      {/*
+        Sello de versión: permite saber qué build está publicado sin tener que
+        descargar los archivos y compararlos contra el build local.
+        __COMMIT__ y __BUILD_DATE__ los inyecta vite.config.js.
+      */}
+      <p className="pie-version" title={`Compilado el ${__BUILD_DATE__}`}>
+        versión {__COMMIT__} · {__BUILD_DATE__}
+      </p>
     </footer>
   );
 }

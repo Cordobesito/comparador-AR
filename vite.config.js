@@ -1,3 +1,4 @@
+import { execSync } from 'node:child_process'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
@@ -17,9 +18,35 @@ const proxy = {
   },
 }
 
+/**
+ * Sello de versión.
+ *
+ * Sin esto no hay forma de mirar la página publicada y saber de qué commit
+ * salió: hay que bajar los archivos y comparar hashes contra el build local.
+ * Con el sello, se lee de un vistazo si lo que está en el aire es lo último.
+ *
+ * COMMIT_REF lo define Netlify durante el build. En local no existe, así que
+ * se pregunta a git; y si tampoco hay git (una copia descomprimida de un zip)
+ * queda "local", que es información honesta y no rompe el build.
+ */
+function versionDelBuild() {
+  if (process.env.COMMIT_REF) return process.env.COMMIT_REF.slice(0, 7)
+  try {
+    return execSync('git rev-parse --short HEAD', { stdio: ['ignore', 'pipe', 'ignore'] })
+      .toString()
+      .trim()
+  } catch {
+    return 'local'
+  }
+}
+
 export default defineConfig({
   plugins: [react()],
   server: { port: 5173, open: true, proxy },
   preview: { port: 4173, proxy },
   build: { target: 'es2020', sourcemap: false },
+  define: {
+    __COMMIT__: JSON.stringify(versionDelBuild()),
+    __BUILD_DATE__: JSON.stringify(new Date().toISOString().slice(0, 10)),
+  },
 })

@@ -622,6 +622,16 @@ table.tabla {
   color: var(--txt-medio);
 }
 
+/* Sello de versión: tiene que poder consultarse, no leerse. Va en
+   monoespaciada porque es un identificador, no prosa. */
+.pie-version {
+  margin-top: 0.9rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.02em;
+  opacity: 0.55;
+}
+
 /* ── Accesibilidad ───────────────────────────────────────────── */
 
 .sr-only {
