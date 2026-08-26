@@ -143,9 +143,12 @@ function Fila({ entidad, posicion, horizonte, capital, inflReferencia, abierta, 
       : null;
 
   // Casi todas las cuentas remuneradas pagan la tasa alta solo hasta cierto
-  // saldo. Si el capital simulado la supera, el rendimiento mostrado no es
-  // el que la persona va a recibir: hay que decirlo.
-  const superaTope = entidad.tope != null && capital > entidad.tope;
+  // saldo. Si el capital simulado la supera, hay que decirlo.
+  //
+  // El dato sale de la simulación y no se recalcula acá: era la misma regla
+  // escrita en dos lugares, y si alguno de los dos cambiaba, la fila podía
+  // avisar de un recorte que el cálculo no aplicaba, o al revés.
+  const superaTope = entidad.simulacion?.superaTope ?? false;
 
   return (
     <div
@@ -197,6 +200,22 @@ function Fila({ entidad, posicion, horizonte, capital, inflReferencia, abierta, 
           <Dato titulo="Tasa efectiva anual" valor={formatTasa(entidad.tea)} />
           <Dato titulo="Liquidez" valor={entidad.liquidez} />
           <Dato titulo="Tope de monto" valor={entidad.tope ? formatARS(entidad.tope) : "Sin tope"} />
+          {superaTope && (
+            <>
+              <Dato
+                titulo="Rinde solo"
+                valor={formatARS(entidad.simulacion.montoRemunerado)}
+              />
+              <Dato
+                titulo="Queda sin rendir"
+                valor={formatARS(entidad.simulacion.excedente)}
+              />
+              <Dato
+                titulo="Equivale sobre el total"
+                valor={`${formatTasa(entidad.simulacion.tnaEfectiva)} TNA`}
+              />
+            </>
+          )}
           <Dato
             titulo="Poder de compra final"
             valor={poderCompra != null ? formatARS(poderCompra) : "—"}

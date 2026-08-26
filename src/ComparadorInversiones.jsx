@@ -17,6 +17,7 @@ import {
 } from "./api-argentina.js";
 import {
   AvisoFuentesCaidas,
+  Badge,
   BadgeAntiguedad,
   BadgeReal,
   Resultado,
@@ -196,6 +197,21 @@ function Tabla({ instrumentos, horizonte }) {
                 <td data-label="Instrumento">
                   <div className="celda-titulo">
                     {i.nombre}{" "}
+                    {/* Sin este aviso el número es correcto pero inexplicable:
+                        una cuenta al 24% rindiendo menos que un plazo fijo al
+                        20% parece un error, y en realidad es el tope. */}
+                    {i.simulacion?.superaTope && (
+                      <Badge
+                        tipo="aviso"
+                        title={
+                          `Paga la tasa solo hasta ${formatARS(i.simulacion.montoRemunerado)}. ` +
+                          `El resto queda sin rendir: equivale a ` +
+                          `${formatTasa(i.simulacion.tnaEfectiva)} TNA sobre el total.`
+                        }
+                      >
+                        supera el tope
+                      </Badge>
+                    )}{" "}
                     <BadgeAntiguedad dias={i.antiguedadDias} vencido={i.vencido} />
                   </div>
                   {i.sub && <div className="celda-sub">{i.sub}</div>}
