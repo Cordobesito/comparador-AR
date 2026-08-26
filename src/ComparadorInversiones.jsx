@@ -331,7 +331,8 @@ function construirInstrumentos(datos, capital, horizonte, inflReferencia) {
         // Solo tiene sentido simular en pesos: un APY en USDT rinde
         // dólares, y compararlo contra la inflación en pesos no dice nada.
         ...(esPesos
-          ? conRendimiento(e.apy, "diaria")
+          // APY: ya es tasa efectiva anual, no se capitaliza otra vez.
+          ? conRendimiento(e.apy, "efectiva")
           : { simulacion: null, rr: null }),
       });
     }

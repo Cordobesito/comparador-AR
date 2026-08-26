@@ -162,6 +162,41 @@ describe("simularInversion con tope", () => {
   });
 });
 
+describe("tasas que ya son efectivas (APY)", () => {
+  test("regresión: un APY no se capitaliza otra vez", () => {
+    // Los exchanges publican APY: 19,16% significa que $1.000.000 se
+    // convierten en $1.191.600 en un año, punto. Tratarlo como TNA y
+    // capitalizarlo a diario daba $1.211.125: casi $20.000 de más.
+    const r = simularInversion(1000000, 19.16, 365, { capitalizacion: "efectiva" });
+    cerca(r.final, 1191600, 1);
+  });
+
+  test("se prorratea bien en plazos parciales", () => {
+    for (const dias of [30, 90, 180]) {
+      const r = simularInversion(1000000, 19.16, dias, { capitalizacion: "efectiva" });
+      cerca(r.final, 1000000 * Math.pow(1.1916, dias / 365), 1);
+    }
+  });
+
+  test("la TEA de un APY es el APY mismo", () => {
+    assert.equal(tnaATea(19.16, "efectiva"), 19.16);
+  });
+
+  test("rinde menos que la misma tasa tratada como nominal diaria", () => {
+    const efectiva = simularInversion(1000000, 19.16, 365, { capitalizacion: "efectiva" });
+    const nominal = simularInversion(1000000, 19.16, 365, { capitalizacion: "diaria" });
+    assert.ok(efectiva.final < nominal.final);
+  });
+
+  test("el modo efectiva respeta el tope igual que los demás", () => {
+    const r = simularInversion(5000000, 19.16, 365, {
+      capitalizacion: "efectiva", tope: 1000000,
+    });
+    assert.equal(r.superaTope, true);
+    cerca(r.final, 1191600 + 4000000, 1);
+  });
+});
+
 describe("calcularRendimientoReal", () => {
   test("le gana a la inflación cuando la tasa es mayor", () => {
     const r = calcularRendimientoReal(50, 20, { capitalizacion: "diaria" });

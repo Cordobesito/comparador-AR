@@ -597,6 +597,9 @@ function normalizarEntidad(nombre) {
  */
 export function tnaATea(tnaPct, capitalizacion = "diaria") {
   if (!Number.isFinite(tnaPct) || tnaPct <= 0) return null;
+  // Los exchanges publican APY, que ya es la tasa efectiva anual: convertirla
+  // otra vez la infla. Un APY del 19,16% se mostraba como 21,11%.
+  if (capitalizacion === "efectiva") return +tnaPct.toFixed(2);
   const periodoDias = capitalizacion === "diaria" ? 1 : Number(capitalizacion) || 30;
   const periodos = 365 / periodoDias;
   const tasaPeriodo = (tnaPct / 100 / 365) * periodoDias;
@@ -623,6 +626,10 @@ export function calcularRendimientoReal(tnaPct, inflAnualPct, { capitalizacion =
  * Simula una inversión.
  *
  * `capitalizacion`:
+ *   "efectiva" → la tasa recibida ya es efectiva anual (el APY que publican
+ *              los exchanges). No se capitaliza de nuevo: solo se prorratea
+ *              al plazo. Tratarla como nominal sobreestimaba un 19,16% de
+ *              APY en casi $20.000 sobre un millón a un año.
  *   "diaria" → cuentas remuneradas: los intereses se acreditan y rinden
  *              todos los días.
  *   número   → plazo fijo: el interés es simple dentro del plazo y solo
@@ -659,7 +666,10 @@ export function simularInversion(
   const tasaDiaria = tnaPct / 100 / 365;
   let crecido;
 
-  if (capitalizacion === "diaria") {
+  if (capitalizacion === "efectiva") {
+    // La tasa ya contiene la capitalización (APY): solo se prorratea el plazo.
+    crecido = remunerado * Math.pow(1 + tnaPct / 100, dias / 365);
+  } else if (capitalizacion === "diaria") {
     crecido = remunerado * Math.pow(1 + tasaDiaria, dias);
   } else {
     const plazo = Number(capitalizacion) || 30;
