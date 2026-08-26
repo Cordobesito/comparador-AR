@@ -767,19 +767,52 @@ table.tabla {
     background: var(--bg-elev);
   }
 
+  /* ── Superficie táctil ──────────────────────────────────────
+     Un dedo apunta con mucha menos precisión que un puntero: la guía de
+     accesibilidad (WCAG 2.5.5) pide 44x44 px como mínimo. Los controles
+     quedaban entre 34 y 40, lo bastante chicos como para errarle seguido
+     en una tabla con muchas filas parecidas.
+
+     Se crece con min-height y padding, no con font-size: agrandar la letra
+     rompería el equilibrio visual y desbordaría los chips en pantallas de
+     360 px. */
+  .chip,
+  .btn,
+  .input,
+  .select,
+  .nav-btn {
+    min-height: 44px;
+  }
+
   .chip {
-    min-height: 40px;
     padding: 0.5rem 0.95rem;
   }
 
-  .tabla td a,
-  .fila a {
-    display: inline-block;
-    padding: 0.5rem 0.75rem;
-    margin: -0.5rem -0.75rem;
+  .nav-btn {
+    padding: 0.5rem;
   }
 
-  .btn {
-    min-height: 40px;
+  /* Los enlaces "Ir →" son chicos por diseño: se agranda el área
+     sensible con padding y se compensa con margen negativo, así el
+     texto no se mueve de lugar. */
+  .tabla td a,
+  .fila a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    min-width: 44px;
+    padding: 0 0.75rem;
+    margin: -0.35rem -0.75rem;
+  }
+
+  /* Los enlaces del pie son texto corrido: agrandarlos partiría el
+     párrafo. WCAG exceptúa los enlaces dentro de una oración. */
+  .pie a {
+    min-height: 0;
+    min-width: 0;
+    display: inline;
+    padding: 0;
+    margin: 0;
   }
 }
