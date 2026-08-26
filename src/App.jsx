@@ -57,6 +57,30 @@ class LimiteDeError extends Component {
 // APP
 // ─────────────────────────────────────────────
 
+/**
+ * Teclado del grupo de pestañas.
+ *
+ * El marcado declara role="tablist", así que el lector de pantalla anuncia
+ * "pestaña 1 de 2" y quien lo usa intenta moverse con las flechas. Sin esto,
+ * el anuncio prometía un comportamiento que no existía: peor que no haber
+ * declarado el rol.
+ */
+function moverEntrePestanas(evento, indice, setPestana) {
+  const ultimo = PESTANAS.length - 1;
+  const destino = {
+    ArrowRight: indice === ultimo ? 0 : indice + 1,
+    ArrowLeft: indice === 0 ? ultimo : indice - 1,
+    Home: 0,
+    End: ultimo,
+  }[evento.key];
+
+  if (destino === undefined) return;
+  evento.preventDefault();
+  setPestana(PESTANAS[destino].id);
+  // El foco tiene que seguir a la selección, si no queda en la pestaña vieja.
+  document.getElementById(`tab-${PESTANAS[destino].id}`)?.focus();
+}
+
 export default function App() {
   return (
     <LimiteDeError>
@@ -111,6 +135,11 @@ function Contenido() {
   return (
     <>
       <header className="topbar">
+        {/* Saltar la navegación: quien usa teclado no tiene por qué recorrer
+            la barra entera en cada carga (WCAG 2.4.1). Solo se ve al enfocarlo. */}
+        <a className="skip-link" href="#contenido">
+          Saltar al contenido
+        </a>
         <div className="topbar-inner">
           <div className="marca">
             <h1>Comparador AR</h1>
@@ -120,7 +149,7 @@ function Contenido() {
           </div>
 
           <nav className="nav" role="tablist" aria-label="Vistas">
-            {PESTANAS.map((p) => (
+            {PESTANAS.map((p, i) => (
               <button
                 key={p.id}
                 id={`tab-${p.id}`}
@@ -128,8 +157,12 @@ function Contenido() {
                 type="button"
                 aria-selected={pestana === p.id}
                 aria-controls={`panel-${p.id}`}
+                // Roving tabindex: al tabular se entra al grupo una sola vez
+                // y adentro se navega con las flechas, como pide el patrón.
+                tabIndex={pestana === p.id ? 0 : -1}
                 className="nav-btn"
                 onClick={() => setPestana(p.id)}
+                onKeyDown={(e) => moverEntrePestanas(e, i, setPestana)}
               >
                 {p.label}
               </button>
@@ -142,7 +175,7 @@ function Contenido() {
         </div>
       </header>
 
-      <main className="contenedor">
+      <main className="contenedor" id="contenido" tabIndex={-1}>
         {error && !datos ? (
           <PanelError mensaje={error} onReintentar={refrescar} />
         ) : !datos ? (

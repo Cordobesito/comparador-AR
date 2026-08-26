@@ -94,7 +94,7 @@ export default function ComparadorInversiones({ datos }) {
         ))}
       </div>
 
-      <Tabla instrumentos={visibles} horizonte={horizonte} />
+      <Tabla instrumentos={visibles} horizonte={horizonte} sinDatos={!instrumentos.length} />
     </section>
   );
 }
@@ -171,9 +171,17 @@ function Indicadores({ datos, inflacion }) {
 // TABLA
 // ─────────────────────────────────────────────
 
-function Tabla({ instrumentos, horizonte }) {
+function Tabla({ instrumentos, horizonte, sinDatos }) {
   if (!instrumentos.length) {
-    return <p className="vacio">No hay instrumentos para este filtro.</p>;
+    // Culpar al filtro cuando en realidad no llegó ningún dato manda a la
+    // persona a probar los otros filtros para no encontrar nada.
+    return (
+      <p className="vacio">
+        {sinDatos
+          ? "No hay datos para mostrar: no respondió ninguna fuente."
+          : "No hay instrumentos para este filtro."}
+      </p>
+    );
   }
 
   return (

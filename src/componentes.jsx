@@ -157,6 +157,9 @@ export function PanelError({ mensaje, onReintentar }) {
 }
 
 /** Se muestra cuando algunas fuentes respondieron y otras no. */
+/** Total de fuentes que consulta la app; si caen todas, no queda "resto". */
+const TOTAL_FUENTES = 7;
+
 export function AvisoFuentesCaidas({ fuentes }) {
   if (!fuentes?.length) return null;
   const nombres = {
@@ -168,12 +171,25 @@ export function AvisoFuentesCaidas({ fuentes }) {
     crypto: "crypto",
     exchanges: "rendimientos de exchanges",
   };
+  // Con todas caídas, "el resto de la página está actualizado" es falso:
+  // no hay resto. Conviene decir qué pasó y qué hacer.
+  const todasCaidas = fuentes.length >= TOTAL_FUENTES;
+
   return (
     <div className="aviso aviso-warn" role="status">
       <span aria-hidden="true">⚠</span>
       <div>
-        Sin respuesta de: {fuentes.map((f) => nombres[f] ?? f).join(", ")}. El resto de la página
-        está actualizado.
+        {todasCaidas ? (
+          <>
+            No se pudo contactar ninguna fuente de datos. Puede ser tu conexión o una caída
+            momentánea de los servicios. Probá con <strong>Actualizar</strong> en un rato.
+          </>
+        ) : (
+          <>
+            Sin respuesta de: {fuentes.map((f) => nombres[f] ?? f).join(", ")}. El resto de la
+            página está actualizado.
+          </>
+        )}
       </div>
     </div>
   );

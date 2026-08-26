@@ -634,6 +634,34 @@ table.tabla {
 
 /* ── Accesibilidad ───────────────────────────────────────────── */
 
+/* Enlace para saltar la navegación. Invisible hasta que recibe el foco:
+   solo lo necesita quien navega con teclado. No se usa display:none
+   porque eso lo sacaría del recorrido de tabulación, que es justo lo
+   contrario de lo que se busca. */
+.skip-link {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%) translateY(-200%);
+  z-index: 100;
+  background: var(--acento-fuerte);
+  color: #04121f;
+  font-weight: 700;
+  font-size: 0.85rem;
+  padding: 0.6rem 1.1rem;
+  border-radius: 0 0 var(--r) var(--r);
+  text-decoration: none;
+  transition: transform 0.15s;
+}
+.skip-link:focus {
+  transform: translateX(-50%) translateY(0);
+}
+
+/* El destino recibe el foco al saltar, pero sin dibujarle un contorno:
+   no es un control, solo el punto de aterrizaje. */
+#contenido:focus {
+  outline: none;
+}
+
 .sr-only {
   position: absolute;
   width: 1px;
