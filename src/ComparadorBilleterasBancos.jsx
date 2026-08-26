@@ -253,7 +253,12 @@ function construirRanking(datos, capital, horizonte, inflReferencia) {
         ]
           .filter(Boolean)
           .join(" · "),
-        simulacion: simularInversion(capital, c.tna, horizonte, { capitalizacion: "diaria" }),
+        // El tope entra en la simulación: sin él, un capital mayor al máximo
+        // remunerado devolvía la ganancia como si todo rindiera la tasa alta.
+        simulacion: simularInversion(capital, c.tna, horizonte, {
+          capitalizacion: "diaria",
+          tope: c.tope,
+        }),
         rr:
           inflReferencia != null
             ? calcularRendimientoReal(c.tna, inflReferencia, { capitalizacion: "diaria" })
@@ -290,13 +295,24 @@ function construirRanking(datos, capital, horizonte, inflReferencia) {
     }
   }
 
-  // La TEA es lo comparable entre productos con capitalización distinta:
-  // un plazo fijo al 23% TNA rinde menos que una cuenta al 23% TNA, porque
-  // la cuenta capitaliza a diario. Ordenar por TNA los empataría de más.
+  // Se ordena por la ganancia simulada, no por la tasa.
+  //
+  // La TEA ya contempla la diferencia de capitalización (un plazo fijo al 23%
+  // rinde menos que una cuenta al 23%), pero no contempla los topes: con un
+  // capital que supera el máximo remunerado, la cuenta de mayor TEA puede
+  // dejar bastante menos que otra más baja sin tope. La ganancia sí lo refleja,
+  // porque ya sale de la simulación con el tope aplicado.
+  //
+  // La TEA queda como criterio de desempate y para mostrarse en la fila.
   return lista
     .map((e) => ({
       ...e,
       tea: e.tea ?? tnaATea(e.tna, e.tipo === "banco" ? 30 : "diaria"),
     }))
-    .sort((a, b) => (b.tea ?? b.tna) - (a.tea ?? a.tna));
+    .sort((a, b) => {
+      const ga = a.simulacion?.ganancia;
+      const gb = b.simulacion?.ganancia;
+      if (Number.isFinite(ga) && Number.isFinite(gb) && ga !== gb) return gb - ga;
+      return (b.tea ?? b.tna) - (a.tea ?? a.tna);
+    });
 }

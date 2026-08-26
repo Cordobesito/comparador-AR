@@ -237,8 +237,9 @@ function Tabla({ instrumentos, horizonte }) {
 function construirInstrumentos(datos, capital, horizonte, inflReferencia) {
   const lista = [];
 
-  const conRendimiento = (tna, capitalizacion) => ({
-    simulacion: simularInversion(capital, tna, horizonte, { capitalizacion }),
+  // `tope` solo aplica a cuentas remuneradas; el plazo fijo no tiene máximo.
+  const conRendimiento = (tna, capitalizacion, tope = null) => ({
+    simulacion: simularInversion(capital, tna, horizonte, { capitalizacion, tope }),
     rr:
       inflReferencia != null
         ? calcularRendimientoReal(tna, inflReferencia, { capitalizacion })
@@ -265,7 +266,7 @@ function construirInstrumentos(datos, capital, horizonte, inflReferencia) {
         vencido: c.vencido,
         enlace: null,
         // Los intereses se acreditan a diario y vuelven a rendir.
-        ...conRendimiento(c.tna, "diaria"),
+        ...conRendimiento(c.tna, "diaria", c.tope),
       });
     }
   }
@@ -360,5 +361,34 @@ function construirInstrumentos(datos, capital, horizonte, inflReferencia) {
     }
   }
 
-  return lista;
+  return ordenarPorRendimiento(lista);
+}
+
+/**
+ * Ordena cada grupo por lo que el capital simulado realmente deja.
+ *
+ * Antes el orden lo daba el de inserción —primero todas las cuentas, después
+ * todos los plazos fijos— y dentro de cada familia, la tasa nominal. Eso
+ * producía dos rarezas: una cuenta al 14% aparecía por encima de un plazo
+ * fijo al 24%, y con capitales que superaban un tope la primera fila rendía
+ * menos que la segunda.
+ *
+ * Se ordena por ganancia y no por tasa porque es la tasa ya corregida por el
+ * tope y por la forma de capitalizar: es lo que la persona se lleva.
+ * Los grupos sin tasa (dólar, crypto) conservan su orden original.
+ */
+function ordenarPorRendimiento(lista) {
+  const ORDEN_GRUPOS = ["pesos", "dolar", "crypto"];
+  const rinde = (i) => i.simulacion?.ganancia ?? null;
+
+  return [...lista].sort((a, b) => {
+    const g = ORDEN_GRUPOS.indexOf(a.grupo) - ORDEN_GRUPOS.indexOf(b.grupo);
+    if (g !== 0) return g;
+    const ra = rinde(a);
+    const rb = rinde(b);
+    if (ra == null && rb == null) return 0;
+    if (ra == null) return 1;
+    if (rb == null) return -1;
+    return rb - ra;
+  });
 }

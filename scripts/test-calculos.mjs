@@ -110,6 +110,58 @@ describe("simularInversion", () => {
   });
 });
 
+describe("simularInversion con tope", () => {
+  test("por debajo del tope no cambia nada", () => {
+    const sin = simularInversion(500000, 24, 30, { capitalizacion: "diaria" });
+    const con = simularInversion(500000, 24, 30, { capitalizacion: "diaria", tope: 1000000 });
+    assert.equal(con.final, sin.final);
+    assert.equal(con.superaTope, false);
+  });
+
+  test("regresión: por encima del tope solo rinde la parte remunerada", () => {
+    // Ualá Plus 2 paga 24% hasta $1.000.000. Con $5.000.000 la página
+    // mostraba +$99.576 (todo al 24%) y la dejaba primera en el ranking,
+    // cuando la ganancia real es la quinta parte.
+    const r = simularInversion(5000000, 24, 30, { capitalizacion: "diaria", tope: 1000000 });
+    const soloElTope = simularInversion(1000000, 24, 30, { capitalizacion: "diaria" });
+
+    assert.equal(r.superaTope, true);
+    assert.equal(r.montoRemunerado, 1000000);
+    assert.equal(r.excedente, 4000000);
+    cerca(r.ganancia, soloElTope.ganancia, 0.02);
+    assert.ok(r.ganancia < 20000, `esperaba menos de 20.000, dio ${r.ganancia}`);
+  });
+
+  test("el excedente vuelve intacto: nunca se pierde capital", () => {
+    const r = simularInversion(5000000, 24, 30, { capitalizacion: "diaria", tope: 1000000 });
+    assert.ok(r.final > 5000000);
+  });
+
+  test("una opción sin tope le gana a una con tope si el capital lo supera", () => {
+    // Es la inversión de ranking que el bug ocultaba.
+    const conTope = simularInversion(5000000, 24, 30, {
+      capitalizacion: "diaria", tope: 1000000,
+    });
+    const sinTope = simularInversion(5000000, 20, 30, { capitalizacion: "diaria" });
+    assert.ok(
+      sinTope.ganancia > conTope.ganancia,
+      "20% sin tope debería superar a 24% topado en $1M cuando se invierten $5M"
+    );
+  });
+
+  test("la TNA efectiva refleja la dilución del excedente", () => {
+    const r = simularInversion(5000000, 24, 30, { capitalizacion: "diaria", tope: 1000000 });
+    cerca(r.tnaEfectiva, 4.8, 0.01); // 24% sobre un quinto del capital
+  });
+
+  test("un tope inválido se ignora en vez de romper", () => {
+    for (const malo of [null, undefined, 0, -100, NaN, "1000000"]) {
+      const r = simularInversion(5000000, 24, 30, { capitalizacion: "diaria", tope: malo });
+      assert.equal(r.superaTope, false, `tope ${JSON.stringify(malo)} no debería aplicarse`);
+    }
+  });
+});
+
 describe("calcularRendimientoReal", () => {
   test("le gana a la inflación cuando la tasa es mayor", () => {
     const r = calcularRendimientoReal(50, 20, { capitalizacion: "diaria" });

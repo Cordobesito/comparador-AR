@@ -239,22 +239,56 @@ export async function getPlazoFijo() {
     .sort((a, b) => b.tna - a.tna);
 }
 
-/** "BANCO DE LA NACION ARGENTINA" → "Banco de la Nación Argentina" */
-function limpiarNombreBanco(nombre) {
-  const menores = new Set(["de", "del", "la", "las", "los", "y", "el", "en"]);
-  const siglas = new Set(["S.A.", "S.A.U.", "BBVA", "ICBC", "HSBC", "BICA", "SAU", "N.A."]);
+/**
+ * "BANCO DE LA NACION ARGENTINA" → "Banco de la Nación Argentina"
+ *
+ * La fuente publica los nombres en mayúsculas y sin acentos, y de forma
+ * inconsistente: "Crédito Regional" llega acentuado y "Reba Compañia" no.
+ * Pasarlo todo a minúscula y capitalizar la inicial deja errores visibles
+ * en una tabla de entidades financieras ("Banco Cmf", "Sociedad Anonima"),
+ * así que hacen falta las tres listas de abajo.
+ */
+const NOMBRE_MENORES = new Set([
+  "de", "del", "la", "las", "los", "y", "el", "en", "and", "of", "the",
+]);
 
-  return String(nombre)
+const NOMBRE_SIGLAS = new Set([
+  "S.A.", "S.A.U.", "SAU", "N.A.", "S.A.U", "S.R.L.",
+  "BBVA", "ICBC", "HSBC", "BICA", "CMF", "BNA", "BIND", "CCF", "GPAT",
+]);
+
+/** Acentos que la fuente no trae. Solo palabras sin ambigüedad. */
+const NOMBRE_ACENTOS = [
+  [/\bNacion\b/gi, "Nación"],
+  [/\bCordoba\b/gi, "Córdoba"],
+  [/\bCompania\b/gi, "Compañía"],
+  [/\bCompañia\b/gi, "Compañía"],
+  [/\bAnonima\b/gi, "Anónima"],
+  [/\bCredito\b/gi, "Crédito"],
+  [/\bTucuman\b/gi, "Tucumán"],
+  [/\bRio\b/gi, "Río"],
+  [/\bUala\b/gi, "Ualá"],
+];
+
+function limpiarNombreBanco(nombre) {
+  const capitalizado = String(nombre)
     .trim()
     .split(/\s+/)
-    .map((p, i) => {
-      if (siglas.has(p.toUpperCase())) return p.toUpperCase();
-      const bajo = p.toLowerCase();
-      if (i > 0 && menores.has(bajo)) return bajo;
-      return bajo.charAt(0).toUpperCase() + bajo.slice(1);
+    .map((palabra, i) => {
+      if (NOMBRE_SIGLAS.has(palabra.toUpperCase())) return palabra.toUpperCase();
+
+      const bajo = palabra.toLowerCase();
+      if (i > 0 && NOMBRE_MENORES.has(bajo)) return bajo;
+
+      // Se busca la primera LETRA, no el primer carácter: "(argentina)"
+      // empieza con paréntesis y quedaba sin capitalizar.
+      const pos = bajo.search(/[a-záéíóúñü]/i);
+      if (pos === -1) return bajo;
+      return bajo.slice(0, pos) + bajo.charAt(pos).toUpperCase() + bajo.slice(pos + 1);
     })
-    .join(" ")
-    .replace(/\bNacion\b/, "Nación");
+    .join(" ");
+
+  return NOMBRE_ACENTOS.reduce((txt, [re, con]) => txt.replace(re, con), capitalizado);
 }
 
 // ─────────────────────────────────────────────
@@ -595,27 +629,59 @@ export function calcularRendimientoReal(tnaPct, inflAnualPct, { capitalizacion =
  *              capitaliza al renovar (30 = renovación mensual). El código
  *              anterior capitalizaba a diario todo, sobreestimando el
  *              plazo fijo en horizontes largos.
+ *
+ * `tope`: monto máximo que la entidad remunera a esa tasa.
+ *
+ * Casi todas las cuentas remuneradas pagan la tasa publicada solo hasta
+ * cierto monto: Ualá Plus 2 hasta $1.000.000, Naranja X hasta $30.000.000.
+ * Sin aplicarlo, simular $5.000.000 en una cuenta con tope de $1.000.000
+ * devolvía cinco veces la ganancia real y la dejaba primera en el ranking,
+ * por encima de plazos fijos sin tope que rendían mucho más.
+ *
+ * El excedente se considera sin remunerar, que es lo que hacen la mayoría
+ * de las billeteras. Algunas pagan una tasa base más baja sobre ese resto,
+ * pero no la publican en ninguna fuente, así que estimarla sería inventar:
+ * quedarse corto es preferible a prometer de más.
  */
-export function simularInversion(capital, tnaPct, dias = 30, { capitalizacion = "diaria" } = {}) {
+export function simularInversion(
+  capital,
+  tnaPct,
+  dias = 30,
+  { capitalizacion = "diaria", tope = null } = {}
+) {
   if (!Number.isFinite(capital) || capital <= 0) return null;
   if (!Number.isFinite(tnaPct) || tnaPct <= 0) return null;
 
+  const hayTope = Number.isFinite(tope) && tope > 0 && capital > tope;
+  const remunerado = hayTope ? tope : capital;
+  const excedente = capital - remunerado;
+
   const tasaDiaria = tnaPct / 100 / 365;
-  let final;
+  let crecido;
 
   if (capitalizacion === "diaria") {
-    final = capital * Math.pow(1 + tasaDiaria, dias);
+    crecido = remunerado * Math.pow(1 + tasaDiaria, dias);
   } else {
     const plazo = Number(capitalizacion) || 30;
     const renovaciones = Math.floor(dias / plazo);
     const sobrante = dias - renovaciones * plazo;
-    final = capital * Math.pow(1 + tasaDiaria * plazo, renovaciones) * (1 + tasaDiaria * sobrante);
+    crecido =
+      remunerado * Math.pow(1 + tasaDiaria * plazo, renovaciones) * (1 + tasaDiaria * sobrante);
   }
+
+  const final = crecido + excedente;
+  const ganancia = final - capital;
 
   return {
     final: +final.toFixed(2),
-    ganancia: +(final - capital).toFixed(2),
-    gananciaPct: +(((final - capital) / capital) * 100).toFixed(2),
+    ganancia: +ganancia.toFixed(2),
+    gananciaPct: +((ganancia / capital) * 100).toFixed(2),
+    superaTope: hayTope,
+    montoRemunerado: +remunerado.toFixed(2),
+    excedente: +excedente.toFixed(2),
+    // Lo que rinde el capital completo una vez diluido el excedente ocioso.
+    // Sirve para comparar de igual a igual contra una opción sin tope.
+    tnaEfectiva: hayTope ? +((tnaPct * remunerado) / capital).toFixed(2) : tnaPct,
   };
 }
 
