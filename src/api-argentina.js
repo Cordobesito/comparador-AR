@@ -224,7 +224,7 @@ export async function getPlazoFijo() {
       if (clientes == null && noClientes == null) return null;
 
       return {
-        banco: limpiarNombreBanco(b.entidad ?? b.banco ?? "Entidad sin identificar"),
+        banco: formatearNombreEntidad(b.entidad ?? b.banco ?? "Entidad sin identificar"),
         tnaClientes: clientes,
         tnaNoClientes: noClientes,
         // Para rankear usamos la tasa a la que accede la mayoría (clientes).
@@ -254,7 +254,7 @@ const NOMBRE_MENORES = new Set([
 
 const NOMBRE_SIGLAS = new Set([
   "S.A.", "S.A.U.", "SAU", "N.A.", "S.A.U", "S.R.L.",
-  "BBVA", "ICBC", "HSBC", "BICA", "CMF", "BNA", "BIND", "CCF", "GPAT",
+  "BBVA", "ICBC", "HSBC", "BICA", "CMF", "BNA", "BIND", "CCF", "GPAT", "IOL",
 ]);
 
 /** Acentos que la fuente no trae. Solo palabras sin ambigüedad. */
@@ -270,7 +270,15 @@ const NOMBRE_ACENTOS = [
   [/\bUala\b/gi, "Ualá"],
 ];
 
-function limpiarNombreBanco(nombre) {
+/**
+ * Da formato a un nombre de entidad que la fuente publica en mayúsculas.
+ *
+ * La usan las dos listas. Antes las cuentas remuneradas tenían su propia
+ * versión, más pobre, y la misma entidad terminaba escrita de dos formas
+ * según dónde apareciera: "Banco BICA S.A." entre los bancos y "Bica Cuenta
+ * Positiva 4" entre las cuentas.
+ */
+function formatearNombreEntidad(nombre) {
   const capitalizado = String(nombre)
     .trim()
     .split(/\s+/)
@@ -315,7 +323,7 @@ export async function getCuentasRemuneradas() {
 
       return {
         id: slug(f.fondo),
-        nombre: nombreLindo(f.fondo),
+        nombre: formatearNombreEntidad(f.fondo),
         tna,
         tea: aPorcentaje(f.tea) ?? tnaATea(tna),
         tope: f.tope ?? null,
@@ -392,16 +400,6 @@ function slug(texto) {
 }
 
 /** Los nombres llegan en mayúsculas: "UALA PLUS 2", "NARANJA X FRASCOS 28". */
-function nombreLindo(fondo) {
-  return String(fondo)
-    .trim()
-    .split(/\s+/)
-    .map((p) => (/^[0-9]+$/.test(p) ? p : p.charAt(0).toUpperCase() + p.slice(1).toLowerCase()))
-    .join(" ")
-    .replace(/\bUala\b/i, "Ualá")
-    .replace(/\bBna\b/i, "BNA")
-    .replace(/\bIol\b/i, "IOL");
-}
 
 // ─────────────────────────────────────────────
 // 4. INFLACIÓN
